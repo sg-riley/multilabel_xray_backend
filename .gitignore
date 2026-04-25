@@ -1,0 +1,34 @@
+# .gitignore — Backend
+
+# Model files (jangan commit ke git — terlalu besar)
+models/*.pt
+models/*.pkl
+models/*.json
+!models/README.md
+
+# Environment
+.env
+*.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Virtual env
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# TorchXRayVision model cache
+~/.torchxrayvision/
+
+# Logs
+*.log
