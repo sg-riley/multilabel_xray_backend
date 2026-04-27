@@ -178,7 +178,6 @@ def generate_gradcam(
             cam = EigenCAM(
                 model=wrapped_model,
                 target_layers=[target_layer],
-                use_cuda=(DEVICE == "cuda"),
             )
 
             # Generate heatmap (224, 224) float [0, 1]

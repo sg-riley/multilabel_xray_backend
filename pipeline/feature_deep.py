@@ -95,44 +95,38 @@ def extract_deep_features(
 ) -> Tuple[np.ndarray, torch.Tensor]:
     """
     Ekstrak deep features dari gambar enhanced.
+    KONSISTEN dengan notebook training (04_feature_extraction).
 
     Args:
-        img_enhanced: numpy (H, W) uint8, output dari preprocessor.enhance_xray()
+        img_enhanced: numpy (H, W) uint8
 
     Returns:
         feat_post_gap : numpy (1024,) float32   → untuk PCA + Fusion
-        feat_pre_gap  : torch.Tensor (1, 1024, 7, 7) → untuk GradCAM
+        feat_pre_gap  : torch.Tensor (1, C, H, W) → untuk GradCAM
     """
     model  = _get_deep_model()
     tensor = _preprocess_for_densenet(img_enhanced)
 
-    # ── Forward hook untuk capture pre-GAP feature map ────────
-    pre_gap_store: Dict[str, torch.Tensor] = {}
+    with torch.no_grad():
+        # Ini IDENTIK dengan notebook training:
+        # feat = model.features(img) → sudah melewati norm5 + ReLU
+        feat_map = model.features(tensor)          # (1, 1024, 7, 7) post-norm5
 
-    def hook_fn(module, input, output):
-        # output dari densenet121.features: (B, 1024, 7, 7)
-        pre_gap_store["feat"] = output.detach().clone()
+    # pre-GAP untuk GradCAM (simpan sebagai tensor)
+    feat_pre_gap = feat_map.detach()               # (1, 1024, 7, 7)
 
-    # Register hook pada layer features (output sebelum classifier/GAP)
-    hook = model.features.denseblock4.register_forward_hook(hook_fn)
-
-    try:
-        with torch.no_grad():
-            _ = model.features(tensor)   # trigger hook, output adalah post-GAP (1, 1024)
-    finally:
-        hook.remove()
-
-    # pre-GAP dari hook (1, C, H, W) — untuk GradCAM
-    feat_pre_gap = pre_gap_store["feat"]
-
-    # post-GAP: GAP manual dari pre-GAP — konsisten dengan notebook 04
-    feat_post_gap = feat_pre_gap.mean(dim=[-2, -1]).squeeze(0).cpu().numpy().astype(np.float32)
+    # post-GAP: Global Average Pooling — identik dengan training
+    feat_post_gap = feat_map.mean(dim=[-2, -1])    # (1, 1024)
+    feat_post_gap = feat_post_gap.squeeze(0).cpu().numpy().astype(np.float32)  # (1024,)
 
     if np.isnan(feat_post_gap).any() or np.isinf(feat_post_gap).any():
         logger.warning("Deep feature mengandung NaN/Inf, normalisasi ulang")
         feat_post_gap = np.nan_to_num(feat_post_gap, nan=0.0, posinf=1e6, neginf=-1e6)
 
-    logger.debug(f"Deep features: post_gap={feat_post_gap.shape}, pre_gap={feat_pre_gap.shape}")
+    logger.debug(
+        f"Deep features: post_gap={feat_post_gap.shape}, "
+        f"pre_gap={feat_pre_gap.shape}"
+    )
     return feat_post_gap, feat_pre_gap
 
 
