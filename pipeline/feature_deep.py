@@ -114,7 +114,7 @@ def extract_deep_features(
         pre_gap_store["feat"] = output.detach().clone()
 
     # Register hook pada layer features (output sebelum classifier/GAP)
-    hook = model.densenet121.features.register_forward_hook(hook_fn)
+    hook = model.features.denseblock4.register_forward_hook(hook_fn)
 
     try:
         with torch.no_grad():
@@ -122,23 +122,17 @@ def extract_deep_features(
     finally:
         hook.remove()
 
-    # pre-GAP: dari hook (1, 1024, 7, 7) — simpan untuk GradCAM
-    feat_pre_gap = pre_gap_store["feat"]   # Tensor (1, 1024, 7, 7) di DEVICE
+    # pre-GAP dari hook (1, C, H, W) — untuk GradCAM
+    feat_pre_gap = pre_gap_store["feat"]
 
-    # post-GAP: Global Average Pool manual → (1024,)
-    feat_post_gap = feat_pre_gap.mean(dim=[-2, -1]).squeeze(0).cpu().numpy()  # (1024,)
-    feat_post_gap = feat_post_gap.astype(np.float32)
+    # post-GAP: GAP manual dari pre-GAP — konsisten dengan notebook 04
+    feat_post_gap = feat_pre_gap.mean(dim=[-2, -1]).squeeze(0).cpu().numpy().astype(np.float32)
 
-    # Validasi
     if np.isnan(feat_post_gap).any() or np.isinf(feat_post_gap).any():
         logger.warning("Deep feature mengandung NaN/Inf, normalisasi ulang")
         feat_post_gap = np.nan_to_num(feat_post_gap, nan=0.0, posinf=1e6, neginf=-1e6)
 
-    logger.debug(
-        f"Deep features extracted: post_gap={feat_post_gap.shape}, "
-        f"pre_gap={feat_pre_gap.shape}"
-    )
-
+    logger.debug(f"Deep features: post_gap={feat_post_gap.shape}, pre_gap={feat_pre_gap.shape}")
     return feat_post_gap, feat_pre_gap
 
 
@@ -151,21 +145,14 @@ def get_densenet_model():
 
 
 def get_target_layer():
-    """
-    Kembalikan layer target GradCAM (densenet121.features.denseblock4).
-    Layer ini adalah output terakhir DenseBlock sebelum normalization dan GAP.
-    """
     model = _get_deep_model()
-
-    # Akses nested layer: densenet121.features.denseblock4
+    # XRV DenseNet: backbone ada di model.features.network
+    # denseblock4 adalah dense block terakhir sebelum norm5 dan GAP
     try:
-        target_layer = model.densenet121.features.denseblock4
+        return model.features.denseblock4
     except AttributeError:
-        # Fallback: coba akses via nama string
-        parts = GRADCAM_TARGET_LAYER.split(".")
-        layer = model
-        for part in parts:
-            layer = getattr(layer, part)
-        target_layer = layer
-
-    return target_layer
+        for name, module in model.named_modules():
+            if "denseblock4" in name and "denselayer" not in name:
+                logger.info(f"GradCAM target layer ditemukan: {name}")
+                return module
+        raise RuntimeError("Layer denseblock4 tidak ditemukan di model XRV")

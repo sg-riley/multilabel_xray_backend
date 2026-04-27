@@ -121,16 +121,14 @@ class _DenseNetWithSingleOutput(torch.nn.Module):
             self.label_idx = None
 
     def forward(self, x):
-        # Gunakan method features DenseNet yang output post-GAP
-        # Shape: (B, 1024)
-        feat = self.model.features(x)
-        if self.label_idx is not None:
-            # Ambil prediksi dari classifier DenseNet XRV
-            # (model.classifier adalah linear layer 1024→18)
-            logits = self.model.classifier(feat)  # (B, 18)
-            return logits[:, self.label_idx:self.label_idx+1]
+        # model.predict() return sigmoid probabilities untuk semua pathologies
+        # model.features() return post-GAP feature vector
+        if self.label_idx is not None and hasattr(self.model, 'predict'):
+            probs = self.model.predict(x)          # (B, 18)
+            return probs[:, self.label_idx:self.label_idx+1]
         else:
-            # Fallback: gunakan mean aktivasi (untuk No_Finding)
+            # Fallback: pakai post-GAP feature mean (EigenCAM tidak butuh ini)
+            feat = self.model.features(x)          # (B, 1024)
             return feat.mean(dim=1, keepdim=True)
 
 
