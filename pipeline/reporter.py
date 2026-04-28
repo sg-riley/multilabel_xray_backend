@@ -1,13 +1,13 @@
 # pipeline/reporter.py
 # ============================================================
-# Pembuatan laporan radiologi sederhana via Claude API
-# Model: claude-haiku-4-5 (murah, cukup untuk laporan)
+# Pembuatan laporan radiologi sederhana via Groq API
+# Model: Llama 3 (cepat dan akurat untuk laporan)
 # ============================================================
 
 import logging
 from typing import Dict, Optional
 
-from app_config import ANTHROPIC_API_KEY, LLM_MODEL, LLM_MAX_TOKENS, TARGET_LABELS
+from app_config import GROQ_API_KEY, LLM_MODEL, LLM_MAX_TOKENS, TARGET_LABELS
 
 logger = logging.getLogger(__name__)
 
@@ -87,36 +87,38 @@ def generate_report(
         report_text: string laporan dalam Bahasa Indonesia
 
     Note:
-        Jika ANTHROPIC_API_KEY tidak di-set atau terjadi error,
+        Jika GROQ_API_KEY tidak di-set atau terjadi error,
         fungsi ini mengembalikan laporan fallback sederhana (tidak raise exception).
     """
     # Jika API key tidak ada, kembalikan laporan template sederhana
-    if not ANTHROPIC_API_KEY:
+    if not GROQ_API_KEY:
         logger.warning(
-            "ANTHROPIC_API_KEY tidak di-set. Menggunakan laporan template."
+            "GROQ_API_KEY tidak di-set. Menggunakan laporan template."
         )
         return _generate_fallback_report(probabilities, predictions)
 
     try:
-        import anthropic
+        from groq import Groq
 
-        client      = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        client      = Groq(api_key=GROQ_API_KEY)
         user_prompt = _build_user_prompt(probabilities, predictions, coverage_pct)
 
         logger.info(f"Generating report via {LLM_MODEL}...")
-        message = client.messages.create(
+        completion = client.chat.completions.create(
             model=LLM_MODEL,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt}
+            ],
             max_tokens=LLM_MAX_TOKENS,
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_prompt}],
         )
 
-        report = message.content[0].text
+        report = completion.choices[0].message.content
         logger.info(f"Report generated ({len(report)} chars)")
         return report
 
     except ImportError:
-        logger.error("Library 'anthropic' tidak terinstall. pip install anthropic")
+        logger.error("Library 'groq' tidak terinstall. pip install groq")
         return _generate_fallback_report(probabilities, predictions)
 
     except Exception as e:

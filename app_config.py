@@ -5,6 +5,10 @@
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
 
 # ── Direktori ────────────────────────────────────────────────
 BASE_DIR   = Path(__file__).resolve().parent
@@ -43,9 +47,9 @@ SCALER_HC_PATH         = MODELS_DIR / "scaler_hc.pkl"
 OPTIMAL_THRESHOLDS_PATH = MODELS_DIR / "optimal_thresholds.json"
 
 # ── LLM ───────────────────────────────────────────────────────
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-LLM_MODEL         = "claude-haiku-4-5-20251001"
-LLM_MAX_TOKENS    = 600
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+LLM_MODEL         = "llama-3.3-70b-versatile"
+LLM_MAX_TOKENS    = 20000
 
 # ── GradCAM ───────────────────────────────────────────────────
 # Layer target untuk GradCAM pada DenseNet121-XRV

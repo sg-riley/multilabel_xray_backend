@@ -33,7 +33,7 @@ backend/
 │   ├── fusion.py                  # PCA transform + concatenate
 │   ├── classifier.py              # ANNClassifier, optimal thresholds
 │   ├── gradcam.py                 # EigenCAM via pytorch-grad-cam
-│   └── reporter.py                # LLM report via Claude API
+│   └── reporter.py                # LLM report via Groq API (Llama 3)
 │
 └── models/
     ├── README.md                  # Instruksi pengumpulan file model
@@ -89,7 +89,7 @@ Google Drive                                       → backend/models/
 
 ```bash
 cp .env.example .env
-# Edit .env, isi ANTHROPIC_API_KEY
+# Edit .env, isi GROQ_API_KEY
 ```
 
 > Jika tidak ada API key, backend tetap berjalan tapi laporan LLM akan menggunakan template statis.
@@ -204,7 +204,7 @@ ValueError: Input dimension mismatch: ANN=150 != Fusion=140
 → Atau install via requirements: `pip install -r requirements.txt`
 
 ### LLM Report tidak ada / template
-→ Set `ANTHROPIC_API_KEY` di `.env`
+→ Set `GROQ_API_KEY` di `.env`
 
 ---
 
