@@ -27,7 +27,6 @@ from pipeline.feature_handcraft import extract_handcrafted_features
 from pipeline.feature_deep  import extract_deep_features
 from pipeline.fusion        import fuse
 from pipeline.classifier    import classify
-from pipeline.gradcam       import generate_gradcam
 from pipeline.reporter      import generate_report
 
 logger = logging.getLogger(__name__)
@@ -140,15 +139,10 @@ def run_full_pipeline(img_bytes: bytes) -> Dict[str, Any]:
 
     # ── [7] GradCAM ───────────────────────────────────────────
     t = time.perf_counter()
-    try:
-        gradcam_images = generate_gradcam(img_enhanced, predictions, probabilities)
-    except Exception as e:
-        logger.warning(f"GradCAM gagal (non-critical): {e}")
-        gradcam_images = {}
+    gradcam_images = {}
     step_times["gradcam_ms"] = int((time.perf_counter() - t) * 1000)
     logger.info(
-        f"[7] GradCAM: {step_times['gradcam_ms']}ms, "
-        f"{len(gradcam_images)} images generated"
+        f"[7] GradCAM: {step_times['gradcam_ms']}ms, dinonaktifkan sementara"
     )
 
     # ── [8] LLM Report ───────────────────────────────────────

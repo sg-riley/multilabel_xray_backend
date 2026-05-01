@@ -33,16 +33,24 @@ def _build_user_prompt(
 ) -> str:
     """Bangun user prompt dari hasil prediksi model."""
 
-    detected     = [lbl for lbl, pred in predictions.items() if pred and lbl != "No_Finding"]
-    no_finding   = predictions.get("No_Finding", False)
-    not_detected = [lbl for lbl, pred in predictions.items() if not pred and lbl != "No_Finding"]
+    detected = [
+        lbl for lbl, pred in predictions.items() if pred and lbl != "No_Finding"
+    ]
+    no_finding = predictions.get("No_Finding", False)
+    not_detected = [
+        lbl for lbl, pred in predictions.items() if not pred and lbl != "No_Finding"
+    ]
 
     lines = ["Hasil analisis model AI hybrid CNN-ANN pada citra X-ray dada:\n"]
 
     if no_finding:
-        lines.append("STATUS KESELURUHAN: Model tidak mendeteksi kondisi patologis signifikan.")
+        lines.append(
+            "STATUS KESELURUHAN: Model tidak mendeteksi kondisi patologis signifikan."
+        )
     elif detected:
-        lines.append(f"STATUS KESELURUHAN: Model mendeteksi {len(detected)} kondisi yang perlu diperhatikan.")
+        lines.append(
+            f"STATUS KESELURUHAN: Model mendeteksi {len(detected)} kondisi yang perlu diperhatikan."
+        )
     else:
         lines.append("STATUS KESELURUHAN: Model mendeteksi kemungkinan kondisi ringan.")
 
@@ -60,7 +68,9 @@ def _build_user_prompt(
         lines.append(f"  • {lbl}: {prob:.1%}")
 
     if coverage_pct is not None:
-        lines.append(f"\nINFO SEGMENTASI: Area paru terdeteksi = {coverage_pct:.1f}% dari gambar")
+        lines.append(
+            f"\nINFO SEGMENTASI: Area paru terdeteksi = {coverage_pct:.1f}% dari gambar"
+        )
 
     lines.append(
         "\nBuatkan laporan radiologi singkat (3-4 paragraf, maks 250 kata) "
@@ -76,7 +86,7 @@ def generate_report(
     coverage_pct: Optional[float] = None,
 ) -> str:
     """
-    Generate laporan radiologi sederhana via Claude API.
+    Generate laporan radiologi sederhana via Groq API.
 
     Args:
         probabilities: dict {label: float} dari classifier.classify()
@@ -92,15 +102,13 @@ def generate_report(
     """
     # Jika API key tidak ada, kembalikan laporan template sederhana
     if not GROQ_API_KEY:
-        logger.warning(
-            "GROQ_API_KEY tidak di-set. Menggunakan laporan template."
-        )
+        logger.warning("GROQ_API_KEY tidak di-set. Menggunakan laporan template.")
         return _generate_fallback_report(probabilities, predictions)
 
     try:
         from groq import Groq
 
-        client      = Groq(api_key=GROQ_API_KEY)
+        client = Groq(api_key=GROQ_API_KEY)
         user_prompt = _build_user_prompt(probabilities, predictions, coverage_pct)
 
         logger.info(f"Generating report via {LLM_MODEL}...")
@@ -108,7 +116,7 @@ def generate_report(
             model=LLM_MODEL,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt}
+                {"role": "user", "content": user_prompt},
             ],
             max_tokens=LLM_MAX_TOKENS,
         )
@@ -134,7 +142,9 @@ def _generate_fallback_report(
     Laporan template sederhana tanpa LLM.
     Digunakan jika API key tidak ada atau LLM error.
     """
-    detected   = [lbl for lbl, pred in predictions.items() if pred and lbl != "No_Finding"]
+    detected = [
+        lbl for lbl, pred in predictions.items() if pred and lbl != "No_Finding"
+    ]
     no_finding = predictions.get("No_Finding", False)
 
     lines = ["**LAPORAN ANALISIS AI — CHEST X-RAY**\n"]
