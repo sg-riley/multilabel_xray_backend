@@ -25,8 +25,8 @@ def load_deep_feature_model() -> None:
     """
     global _densenet_model
 
-    logger.info("Loading DenseNet121-XRV model (weights=densenet121-res224-all)...")
-    _densenet_model = xrv.models.DenseNet(weights="densenet121-res224-all")
+    logger.info("Loading DenseNet121-XRV model (weights=densenet121-res224-pc)...")
+    _densenet_model = xrv.models.DenseNet(weights="densenet121-res224-pc")
 
     # Freeze semua parameter — hanya digunakan untuk feature extraction
     for param in _densenet_model.parameters():
