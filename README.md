@@ -76,10 +76,10 @@ Lihat `models/README.md` untuk instruksi lengkap. Intinya:
 ```
 Google Drive                                       → backend/models/
 ─────────────────────────────────────────────────────────────────
-06_training_eval/.../ann_densenet121_xrv_all_aug_best.pt → ann_best.pt
-05_pca_fusion/densenet121_xrv_all_aug/pca_deep.pkl       → pca_deep.pkl
-05_pca_fusion/densenet121_xrv_all_aug/scaler_deep.pkl    → scaler_deep.pkl
-05_pca_fusion/densenet121_xrv_all_aug/scaler_hc.pkl      → scaler_hc.pkl
+06_training_eval/.../ann_densenet121_xrv_pc_best.pt → ann_best.pt
+05_pca_fusion/densenet121_xrv_padchest/pca_deep.pkl       → pca_deep.pkl
+05_pca_fusion/densenet121_xrv_padchest/scaler_deep.pkl    → scaler_deep.pkl
+05_pca_fusion/densenet121_xrv_padchest/scaler_hc.pkl      → scaler_hc.pkl
 06_training_eval/.../optimal_thresholds_*.json           → optimal_thresholds.json
 ```
 
