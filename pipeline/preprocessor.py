@@ -7,6 +7,8 @@
 import cv2
 import numpy as np
 import logging
+import io
+import pydicom
 from typing import Tuple
 
 logger = logging.getLogger(__name__)
@@ -15,6 +17,7 @@ logger = logging.getLogger(__name__)
 def load_image_from_bytes(img_bytes: bytes) -> np.ndarray:
     """
     Decode bytes dari upload HTTP → numpy grayscale uint8.
+    Mendukung format PNG, JPG, dan DICOM.
 
     Args:
         img_bytes: raw bytes dari UploadFile.read()
@@ -25,15 +28,52 @@ def load_image_from_bytes(img_bytes: bytes) -> np.ndarray:
     Raises:
         ValueError: jika gambar gagal didecode
     """
+    # 1. Coba load sebagai DICOM (Standard preamble 128 bytes + "DICM")
+    try:
+        # Pydicom butuh file-like object
+        with io.BytesIO(img_bytes) as f:
+            ds = pydicom.dcmread(f)
+            # Ambil pixel data
+            img = ds.pixel_array
+
+            # Konversi ke float untuk normalisasi windowing
+            img = img.astype(float)
+
+            # Windowing / Rescaling (jika ada meta Rescale Slope/Intercept)
+            if hasattr(ds, 'RescaleSlope') and hasattr(ds, 'RescaleIntercept'):
+                img = img * ds.RescaleSlope + ds.RescaleIntercept
+
+            # Normalisasi ke 0-255 (grayscale uint8)
+            img_min = img.min()
+            img_max = img.max()
+            if img_max > img_min:
+                img = (img - img_min) / (img_max - img_min) * 255.0
+            else:
+                img = np.zeros_like(img)
+
+            img = img.astype(np.uint8)
+
+            # Handle Photometric Interpretation (Invert jika MONOCHROME1)
+            # MONOCHROME1: 0 = white, MONOCHROME2: 0 = black (standar)
+            if hasattr(ds, 'PhotometricInterpretation') and ds.PhotometricInterpretation == "MONOCHROME1":
+                img = 255 - img
+
+            logger.info("DICOM image detected and converted to grayscale uint8.")
+            return img
+    except Exception as e:
+        # Jika bukan DICOM atau gagal, lanjut ke CV2
+        logger.debug(f"Not a DICOM file or failed to read DICOM ({e}). Falling back to CV2.")
+
+    # 2. Fallback ke OpenCV (PNG, JPG)
     nparr = np.frombuffer(img_bytes, np.uint8)
     img   = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
 
     if img is None:
         raise ValueError(
-            "Gagal membaca gambar. Pastikan file adalah PNG atau JPG yang valid."
+            "Gagal membaca gambar. Pastikan file adalah PNG, JPG, atau DICOM yang valid."
         )
 
-    logger.debug(f"Image loaded: shape={img.shape}, dtype={img.dtype}")
+    logger.debug(f"Image loaded via CV2: shape={img.shape}, dtype={img.dtype}")
     return img
 
 

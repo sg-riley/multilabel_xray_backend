@@ -90,10 +90,16 @@ async def analyze_xray(
         JSON dengan prediksi, probabilitas, GradCAM, dan laporan
     """
     # Validasi file type
-    if file.content_type not in ["image/png", "image/jpeg", "image/jpg"]:
+    allowed_types = ["image/png", "image/jpeg", "image/jpg", "application/dicom", "application/octet-stream"]
+    allowed_exts  = (".png", ".jpg", ".jpeg", ".dcm", ".dicom")
+
+    is_valid_type = file.content_type in allowed_types
+    is_valid_ext  = file.filename.lower().endswith(allowed_exts)
+
+    if not (is_valid_type or is_valid_ext):
         raise HTTPException(
             status_code=422,
-            detail=f"Format file tidak didukung: {file.content_type}. Gunakan PNG atau JPG.",
+            detail=f"Format file tidak didukung: {file.content_type}. Gunakan PNG, JPG, atau DICOM.",
         )
 
     # Baca bytes
@@ -138,6 +144,27 @@ async def analyze_xray(
         )
 
     return result
+
+
+@router.post("/preview")
+async def get_image_preview(
+    file: UploadFile = File(...)
+):
+    """
+    Generate preview PNG (base64) untuk file gambar/DICOM.
+    Digunakan oleh frontend untuk menampilkan preview DICOM.
+    """
+    img_bytes = await file.read()
+    
+    try:
+        from pipeline.preprocessor import load_image_from_bytes, image_to_base64
+        img = load_image_from_bytes(img_bytes)
+        # Resize untuk preview agar tidak terlalu berat (opsional, tapi bagus)
+        # img = cv2.resize(img, (512, 512)) 
+        return {"preview": image_to_base64(img)}
+    except Exception as e:
+        logger.error(f"Preview error: {e}")
+        raise HTTPException(status_code=422, detail="Gagal membuat preview gambar")
 
 
 @router.get("/labels")
